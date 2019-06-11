@@ -1,6 +1,6 @@
+// функция паузы
 function toggle_pause_play(){
 	if(typeof window.playing == "undefined"){
-		// запускаем цикл обработки с id = playing, чтобы иметь возможность остановить его
 		window.playing = setInterval(play, 20);
 	} else {
 		clearInterval(playing);
@@ -9,10 +9,28 @@ function toggle_pause_play(){
 }
 
 
-
 // инициализация канваса
 var canvas = document.getElementById("canvas"),
 	ctx     = canvas.getContext('2d');
+
+
+// обработка кликов по канвасу
+canvas.addEventListener('click', function(e) {
+	rectangles.forEach(function(rect){
+		// проверяем для каждого прямоугольника был ли совершён по нему клик
+		if (is_point_in_rectangle([e.offsetX, e.offsetY], rect.vertexes)){
+
+			// меняем некоторые параметры прямоугольника: его цвет, цыет текста, импульс и направление вращения
+			rect.color = colorArray[Math.floor(Math.random() * colorArray.length)];
+			rect.text_color = colorArray[Math.floor(Math.random() * colorArray.length)];
+			rect.dx = 3 * (0.5-Math.random());
+			rect.dy = 3 * (0.5-Math.random());
+			rect.dangle = (0.5 - Math.random()) * 5;
+		}
+	});
+}, false);
+
+
 
 // класс определяющий параметры простого прямоугольника и метод для его отрисовки
 class SimpleRect{
@@ -43,28 +61,34 @@ class TextRect extends SimpleRect {
 	    this.render = function() {
 	    	// поворот для отрисовки с углом
 	    	ctx.setTransform(1, 0, 0, 1, this.x, this.y);
-
 			ctx.rotate(this.angle * Math.PI / 180);
 
+			// отрисовка прямоугольника
 	        ctx.fillStyle = this.color;
 	        ctx.fillRect(-this.width/2, -this.height/2, this.width, this.height);
 
+	        // отрисовка текста в центре прямоугольника
 	        ctx.textAlign = "center";
 	        ctx.textBaseline = "middle";
 	        ctx.fillStyle = this.text_color;
-		    ctx.font = "Bold 15pt Arial";
+		    ctx.font = "15pt Orbitron";
 		    ctx.fillText(this.text, 0, 0);
+
+		    // создать тени для красоты
+			ctx.shadowColor = "rgba(0,0,0,0.3";
+			ctx.shadowBlur = 5;
 
 		    // возвращение в обратный "нормальный" вид
 		    ctx.setTransform(1, 0, 0, 1, 0, 0);
 
 		    // обработка координат углов, которые учитываются при коллизии
 		    // она происходит здесь, чтобы для каждого прямоугольника обрабатывать только 1 раз за кадр а не 8
-		    //   0-----------1
-		    //   |           |
-		    //   |     x     |		при angle = 0, id координат вершин располагаются так
-		    //   |           |
-		    //   3-----------2
+		    //   0-----------1		
+		    //   |           |		при angle = 0, id координат вершин располагаются так
+		    //   |     x     |		vertexes[1][0] - x-координата вершины с id = 1
+		    //   |           |		vertexes[1][1] - y-координата вершины с id = 1
+		    //   3-----------2		
+		    //
 			this.vertexes = [
 				[	this.x + (-this.width/2)*Math.cos(this.angle*Math.PI/180) + ( this.height/2)*Math.sin(this.angle*Math.PI/180), 
 					this.y + (-this.width/2)*Math.sin(this.angle*Math.PI/180) - ( this.height/2)*Math.cos(this.angle*Math.PI/180)],
@@ -79,11 +103,28 @@ class TextRect extends SimpleRect {
 	}
 }
 
+// массив из N количества прямоугольников
+// в задаче их 8 шт, но создавать каждый отдельно, давая ему имя, не имеет смысла
 var rectangles = []
 
-// проверяет находится ли точка внутри зоны, заданной координатами
+// заготовка из цветов в которые будут окрашены прямоугольники
+var colorArray = ['#FF6633', '#FFB399', '#FF33FF', '#FFFF99', '#00B3E6',
+				  '#E6B333', '#3366E6', '#999966', '#99FF99', '#B34D4D',
+				  '#80B300', '#809900', '#E6B3B3', '#6680B3', '#66991A',
+				  '#FF99E6', '#CCFF1A', '#FF1A66', '#E6331A', '#33FFCC',
+				  '#66994D', '#B366CC', '#4D8000', '#B33300', '#CC80CC',
+				  '#66664D', '#991AFF', '#E666FF', '#4DB3FF', '#1AB399',
+				  '#E666B3', '#33991A', '#CC9999', '#B3B31A', '#00E680',
+				  '#4D8066', '#809980', '#E6FF80', '#1AFF33', '#999933',
+				  '#FF3380', '#CCCC00', '#66E64D', '#4D80CC', '#9900B3',
+				  '#E64D66', '#4DB380', '#FF4D4D', '#99E6E6', '#6666FF'];
+
+// проверяет находится ли точка внутри прямоугольника
 function is_point_in_rectangle(point, zone){
 
+	// разбиваем прямоугольник на два треугольника и для каждого проверяем не лежит ли точка внутри
+	// Написал код ниже с первого раза. Сам в шоке.
+	// логика проверки описана здесь: http://www.cyberforum.ru/algorithms/thread144722.html
 	// проверяем треугольник из точек: 0, 1, 2
 	a = (zone[0][0] - point[0]) * (zone[1][1] - zone[0][1]) - (zone[1][0] - zone[0][0]) * (zone[0][1] - point[1]);
 	b = (zone[1][0] - point[0]) * (zone[2][1] - zone[1][1]) - (zone[2][0] - zone[1][0]) * (zone[1][1] - point[1]);
@@ -107,7 +148,7 @@ function is_point_in_rectangle(point, zone){
 // проверяет коллизию между двумя прямоугольниками
 function collision(rect_A, rect_B){
 	is_collide = false;
-	// для каждого угла каждого прямоугольника проверяем не находится ли он внутри другого прямоугольника
+	// для каждого из двух прямоугольников проверяем не лежит ли его точка внутри другого прямоугольника.
 	rect_A.vertexes.forEach(function(vertex){
 		if (is_point_in_rectangle(vertex, rect_B.vertexes)){
 			is_collide = true;
@@ -119,13 +160,11 @@ function collision(rect_A, rect_B){
 		}
 	});
 
+	// если коллизия была - хотя бы одна точка одного прямоугольника лежит внутри другого
 	if (is_collide) {
-		rect_A.dy *= -1;
-		rect_B.dy *= -1;
-		rect_A.dx *= -1;
-		rect_B.dx *= -1;
-
-		console.log("коллизия!");
+		// свапаем "импульс" прямоугольников - симулируем передачу энергии
+		[rect_A.dx, rect_B.dx] = [rect_B.dx, rect_A.dx];
+		[rect_A.dy, rect_B.dy] = [rect_B.dy, rect_A.dy];
 	}
 }
 
@@ -143,7 +182,7 @@ function edge_collision(rect){
 		maxy = Math.max(maxy, corner[1]);
 	});
 
-	// проверяем эти крайние значения за каждой из сторон канваса, перенаправляем прямоугольник внутрь
+	// проверяем эти крайние значения за каждой из сторон канваса, перенаправляем прямоугольник внутрь канваса - он не должен вылететь наружу
 	if (minx < 0){
 		rect.dx = Math.abs(rect.dx);
 	}
@@ -163,35 +202,22 @@ function init(){
 	canvas.width = background.width;
 	canvas.height = background.height;
 
-	var colorArray = ['#FF6633', '#FFB399', '#FF33FF', '#FFFF99', '#00B3E6',
-					  '#E6B333', '#3366E6', '#999966', '#99FF99', '#B34D4D',
-					  '#80B300', '#809900', '#E6B3B3', '#6680B3', '#66991A',
-					  '#FF99E6', '#CCFF1A', '#FF1A66', '#E6331A', '#33FFCC',
-					  '#66994D', '#B366CC', '#4D8000', '#B33300', '#CC80CC',
-					  '#66664D', '#991AFF', '#E666FF', '#4DB3FF', '#1AB399',
-					  '#E666B3', '#33991A', '#CC9999', '#B3B31A', '#00E680',
-					  '#4D8066', '#809980', '#E6FF80', '#1AFF33', '#999933',
-					  '#FF3380', '#CCCC00', '#66E64D', '#4D80CC', '#9900B3',
-					  '#E64D66', '#4DB380', '#FF4D4D', '#99E6E6', '#6666FF'];
-
 	// создаём 8 прямоугольников
 	for (var i = 1; i <= 8; i++) {
 		back_color = colorArray[Math.floor(Math.random() * colorArray.length)];
 		text_color = colorArray[Math.floor(Math.random() * colorArray.length)];
-
-		dx = Math.random();
-		dy = Math.random();
+		dx = 3 * (0.5-Math.random());
+		dy = 3 * (0.5-Math.random());
 		width = 40 + 20*Math.random();
 		height = 40 + 20*Math.random();
-
 		angle = 360*Math.random();
+		dangle = (0.5 - Math.random()) * 5;
 
-		dangle = 0.5 - Math.random();
-
-		rectangles.push(new TextRect(back_color, text_color, 80*i, 275, dx, dy, width, height, angle, dangle, i.toString()));
+		rectangles.push(new TextRect(back_color, text_color, 80*i, 60*i, dx, dy, width, height, angle, dangle, i.toString()));
 	}
 	
-	//window.playing = setInterval(play, 20);
+	// запускаем прорисовку
+	window.playing = setInterval(play, 20);
 }
 
 function play(){
@@ -216,12 +242,3 @@ function play(){
 }
 
 init();
-
-
-var test_rectangle = new TextRect("black", "red", 100, 100, 0, 0, 50, 50, 0, 0, 'test');
-var test_rectangle2 = new TextRect("black", "red", 150, 150, 0, 0, 100, 100, 0, 0, 'test');
-test_rectangle.render();
-test_rectangle2.render();
-collision(test_rectangle, test_rectangle2);
-
-//is_point_in_rectangle(test_rectangle.vertexes[2], test_rectangle2.vertexes)
