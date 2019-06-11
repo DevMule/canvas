@@ -1,10 +1,18 @@
+function toggle_pause_play(){
+	if(typeof window.playing == "undefined"){
+		// запускаем цикл обработки с id = playing, чтобы иметь возможность остановить его
+		window.playing = setInterval(play, 20);
+	} else {
+		clearInterval(playing);
+		delete playing;
+	}
+}
+
 
 
 // инициализация канваса
 var canvas = document.getElementById("canvas"),
 	ctx     = canvas.getContext('2d');
-
-
 
 // класс определяющий параметры простого прямоугольника и метод для его отрисовки
 class SimpleRect{
@@ -75,25 +83,25 @@ var rectangles = []
 
 // проверяет находится ли точка внутри зоны, заданной координатами
 function is_point_in_rectangle(point, zone){
-	len = zone.length;
-	anglesum = 0;
-	for (var i = 0; i < len; i++) {
-		// находим векторы
-		v1 = [zone[    i    ][0]-point[0], zone[i][1]-point[1]];
-		v2 = [zone[(i+1)%len][0]-point[0], zone[i][1]-point[1]];
 
-		// скалярное произведение
-		cosa = (v1[0]*v2[0] + v1[1]*v2[1])/(Math.sqrt(v1[0]*v1[0] + v1[1]*v1[1]) * Math.sqrt(v2[0]*v2[0] + v2[1]*v2[1]));
-		anglesum += Math.acos(cosa);
-	}
-
-	//console.log(anglesum, point, zone);
-
-	if (anglesum.toFixed() == 2){
+	// проверяем треугольник из точек: 0, 1, 2
+	a = (zone[0][0] - point[0]) * (zone[1][1] - zone[0][1]) - (zone[1][0] - zone[0][0]) * (zone[0][1] - point[1]);
+	b = (zone[1][0] - point[0]) * (zone[2][1] - zone[1][1]) - (zone[2][0] - zone[1][0]) * (zone[1][1] - point[1]);
+	c = (zone[2][0] - point[0]) * (zone[0][1] - zone[2][1]) - (zone[0][0] - zone[2][0]) * (zone[2][1] - point[1]);
+	if ((a<0 && b<0 && c<0)||(a>0 && b>0 && c>0)||(a==0 || b==0 || c==0)){
 		return true;
-	} else {
-		return false;
 	}
+
+	// проверяем треугольник из точек: 0, 3, 2
+	a = (zone[0][0] - point[0]) * (zone[3][1] - zone[0][1]) - (zone[3][0] - zone[0][0]) * (zone[0][1] - point[1]);
+	b = (zone[3][0] - point[0]) * (zone[2][1] - zone[3][1]) - (zone[2][0] - zone[3][0]) * (zone[3][1] - point[1]);
+	c = (zone[2][0] - point[0]) * (zone[0][1] - zone[2][1]) - (zone[0][0] - zone[2][0]) * (zone[2][1] - point[1]);
+	if ((a<0 && b<0 && c<0)||(a>0 && b>0 && c>0)||(a==0 || b==0 || c==0)){
+		return true;
+	}
+
+	// если до этого не ретёрнули значит не судьба)
+	return false;
 }
 
 // проверяет коллизию между двумя прямоугольниками
@@ -116,6 +124,8 @@ function collision(rect_A, rect_B){
 		rect_B.dy *= -1;
 		rect_A.dx *= -1;
 		rect_B.dx *= -1;
+
+		console.log("коллизия!");
 	}
 }
 
@@ -180,9 +190,8 @@ function init(){
 
 		rectangles.push(new TextRect(back_color, text_color, 80*i, 275, dx, dy, width, height, angle, dangle, i.toString()));
 	}
-
-	// запускаем цикл обработки 
-	setInterval(play, 20);
+	
+	//window.playing = setInterval(play, 20);
 }
 
 function play(){
@@ -208,9 +217,11 @@ function play(){
 
 init();
 
-/*
-var test_rectangle = new TextRect("black", "red", 100, 100, 0, 0, 50, 50, 180, 0, 'test');
-var test_rectangle2 = new TextRect("black", "red", 150, 150, 0, 0, 100, 100, 45, 0, 'test');
+
+var test_rectangle = new TextRect("black", "red", 100, 100, 0, 0, 50, 50, 0, 0, 'test');
+var test_rectangle2 = new TextRect("black", "red", 150, 150, 0, 0, 100, 100, 0, 0, 'test');
 test_rectangle.render();
 test_rectangle2.render();
-collision(test_rectangle, test_rectangle2);*/
+collision(test_rectangle, test_rectangle2);
+
+//is_point_in_rectangle(test_rectangle.vertexes[2], test_rectangle2.vertexes)
