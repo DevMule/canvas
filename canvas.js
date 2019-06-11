@@ -23,22 +23,29 @@ class SimpleRect{
 
 // класс определяющий параметры прямоугольника с текстом и метод для его отрисовки
 class TextRect extends SimpleRect {
-	constructor(color, text_color, x, y, dx, dy, width, height, text='') {
+	constructor(color, text_color, x, y, dx, dy, width, height, angle=0, dangle=0, text='') {
 		super(color, x, y, width, height);
 	    this.text = text;
 	    this.text_color = text_color;
 	    this.dx = dx;
 	    this.dy = dy;
-
+	    this.angle = angle
+	    this.dangle = dangle
 	    this.draw = function() {
+	    	ctx.setTransform(1, 0, 0, 1, this.x, this.y);
+
+			ctx.rotate(this.angle * Math.PI / 180);
+
 	        ctx.fillStyle = this.color;
-	        ctx.fillRect(this.x, this.y, this.width, this.height);
+	        ctx.fillRect(-this.width/2, -this.height/2, this.width, this.height);
 
 	        ctx.textAlign = "center";
 	        ctx.textBaseline = "middle";
 	        ctx.fillStyle = this.text_color;
 		    ctx.font = "Bold 15pt Arial";
-		    ctx.fillText(this.text, this.x+this.width/2, this.y+this.height/2);
+		    ctx.fillText(this.text, 0, 0);
+
+		    ctx.setTransform(1, 0, 0, 1, 0, 0);
 	    };
 	}
 }
@@ -92,12 +99,16 @@ function init(){
 		back_color = colorArray[Math.floor(Math.random() * colorArray.length)];
 		text_color = colorArray[Math.floor(Math.random() * colorArray.length)];
 
-		dx = Math.random();
-		dy = Math.random();
-		sizex = 40 + 20*Math.random();
-		sizey = 40 + 20*Math.random();
+		dx = 0;//Math.random();
+		dy = 0;//Math.random();
+		width = 40 + 20*Math.random();
+		height = 40 + 20*Math.random();
 
-		rectangles.push(new TextRect(back_color, text_color, 80*i, 275, dx, dy, sizex, sizey, i.toString()));
+		angle = 360*Math.random();
+
+		dangle = 0.5 - Math.random();
+
+		rectangles.push(new TextRect(back_color, text_color, 80*i, 275, dx, dy, width, height, angle, dangle, i.toString()));
 	}
 
 	setInterval(play, 20);
@@ -119,6 +130,7 @@ function play(){
 	rectangles.forEach(function(rect) {
 		rect.x += rect.dx;
 		rect.y += rect.dy;
+		rect.angle += rect.dangle;
 		rect.draw();
 	});
 }
